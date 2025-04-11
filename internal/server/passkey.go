@@ -28,21 +28,15 @@ type RegisterRequest struct {
 	Username string `json:"username"` // 用户名，用于标识用户身份
 }
 
-// Session 用于存储注册会话数据。
-// 该结构体用于在注册过程中临时存储会话相关信息。
-type Session struct {
-	Data interface{} // 会话数据，可以是任意类型
-}
-
 // passkeyServer 是 Passkey 认证服务器的核心实现结构体。
 // 它负责处理所有与 Passkey 认证相关的 HTTP 请求，并管理认证流程。
 type passkeyServer struct {
-	logger   kitlog.Logger            // 日志记录器，用于记录服务器运行时的日志信息
-	conf     *appconf.Config          // 服务器配置信息
-	webauthn *webauthn.WebAuthn       // WebAuthn 实例，用于处理认证相关操作
-	userDB   map[string]webauthn.User // 用户数据库，存储所有注册用户信息
-	sessions map[string]*Session      // 会话存储，用于管理注册会话
-	mu       sync.RWMutex             // 互斥锁，用于保护并发访问
+	logger   kitlog.Logger                   // 日志记录器，用于记录服务器运行时的日志信息。
+	conf     *appconf.Config                 // 服务器配置信息。
+	webauthn *webauthn.WebAuthn              // WebAuthn 实例，用于处理认证相关操作。
+	userDB   map[string]webauthn.User        // 用户数据库，存储所有注册用户信息。
+	sessions map[string]webauthn.SessionData // 会话存储，用于管理注册会话。
+	mu       sync.RWMutex                    // 互斥锁，用于保护并发访问。
 }
 
 // newPasskeyServer 创建一个新的 Passkey 服务器实例。
@@ -57,7 +51,7 @@ func newPasskeyServer(logger kitlog.Logger, conf *appconf.Config) http.Handler {
 		logger:   logger,
 		conf:     conf,
 		userDB:   make(map[string]webauthn.User),
-		sessions: make(map[string]*Session),
+		sessions: make(map[string]webauthn.SessionData),
 	}
 
 	h.webauthn, _ = webauthn.New(&webauthn.Config{
@@ -189,7 +183,7 @@ func (s *passkeyServer) handleBeginRegistration(w http.ResponseWriter, r *http.R
 	}
 
 	sessionID := username
-	s.sessions[sessionID] = &Session{Data: sessionData}
+	s.sessions[sessionID] = *sessionData
 	s.userDB[username] = user
 
 	http.SetCookie(w, &http.Cookie{
