@@ -90,6 +90,9 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 	webServer.engine.POST("/api/register/*path", gin.HandlerFunc(func(c *gin.Context) {
 		ps.ServeHTTP(c.Writer, c.Request)
 	}))
+	webServer.engine.POST("/api/login/*path", gin.HandlerFunc(func(c *gin.Context) {
+		ps.ServeHTTP(c.Writer, c.Request)
+	}))
 
 	var cleanup = func() {}
 

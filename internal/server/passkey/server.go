@@ -23,12 +23,12 @@ import (
 
 // 定义 cookie 名称常量。
 const (
-	cookieName = "registration_session"
+	cookienamereg = "registration_session"
 )
 
-// RegisterRequest 定义了用户注册请求的数据结构。
+// Request 定义了用户注册请求的数据结构。
 // 该结构体用于接收客户端发送的注册请求数据。
-type RegisterRequest struct {
+type Request struct {
 	Username string `json:"username"` // 用户名，用于标识用户身份。
 }
 
@@ -95,6 +95,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(path, "/api/register/finish"):
 		// 处理注册完成请求。
 		s.handleFinishRegistration(w, r)
+	case strings.HasPrefix(path, "/api/login/begin"):
+		// 处理登录开始请求。
+		s.handleBeginLogin(w, r)
 	default:
 		// 处理未知路径请求。
 		http.NotFound(w, r)
@@ -133,22 +136,8 @@ func (s *Server) serveIndexHTML(w http.ResponseWriter) error {
 //   - w：用于写入 HTTP 响应的 ResponseWriter
 //   - r：包含 HTTP 请求信息的 Request 对象
 func (s *Server) handleBeginRegistration(w http.ResponseWriter, r *http.Request) {
-	// 设置 CORS 和响应头。
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:44444")
-	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:44444")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-
-	// 处理预检请求。
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
 	// 解析请求体。
-	var req RegisterRequest
+	var req Request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.logger.Warn("解析请求数据失败", "error", err)
 		http.Error(w, "无法解析请求数据", http.StatusBadRequest)
@@ -218,7 +207,7 @@ func (s *Server) handleBeginRegistration(w http.ResponseWriter, r *http.Request)
 
 	// 设置会话 cookie。
 	http.SetCookie(w, &http.Cookie{
-		Name:     cookieName,
+		Name:     cookienamereg,
 		Value:    sessionID,
 		Path:     "/",
 		MaxAge:   300,
@@ -244,7 +233,7 @@ func (s *Server) handleBeginRegistration(w http.ResponseWriter, r *http.Request)
 //   - r：包含 HTTP 请求信息的 Request 对象
 func (s *Server) handleFinishRegistration(w http.ResponseWriter, r *http.Request) {
 	// 获取会话 cookie。
-	cookie, err := r.Cookie(cookieName)
+	cookie, err := r.Cookie(cookienamereg)
 	if err != nil {
 		s.logger.Warn("获取会话 ID 失败", "error", err)
 		http.Error(w, "获取会话 ID 失败", http.StatusBadRequest)
@@ -284,4 +273,32 @@ func (s *Server) handleFinishRegistration(w http.ResponseWriter, r *http.Request
 	user.(*User).AddCredential(*credential)
 
 	s.logger.Info("注册完成成功", "username", user.WebAuthnName())
+}
+
+func (s *Server) handleBeginLogin(w http.ResponseWriter, r *http.Request) {
+	// 解析请求体。
+	var req Request
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.logger.Warn("解析请求数据失败", "error", err)
+		http.Error(w, "无法解析请求数据", http.StatusBadRequest)
+		return
+	}
+	// 确保请求体被关闭。
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			s.logger.Error("关闭请求体失败", "error", err)
+		}
+	}()
+
+	// 验证用户名。
+	username := req.Username
+	if username == "" {
+		s.logger.Warn("用户名为空")
+		http.Error(w, "用户名不能为空", http.StatusBadRequest)
+		return
+	}
+
+	// 加锁保护并发访问。
+	s.mu.Lock()
+	defer s.mu.Unlock()
 }
