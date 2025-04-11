@@ -1,0 +1,35 @@
+// Copyright 2025 fsyyft-go
+// 
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+// Jenkins Pipeline 配置文件，用于定义持续集成流程。
+pipeline {
+
+    agent any
+
+    environment {
+        // 设置 Go 语言代理。
+        GOPROXY = 'https://goproxy.cn,direct'
+    }
+
+    options {
+        timeout(time: 20, unit: "MINUTES")
+    }
+
+    parameters {
+        booleanParam(name: "runTest", description: "是否运行测试（默认为是）", defaultValue: true)
+    }
+
+    // 定义流水线各个阶段。
+    stages {        
+        // 测试阶段。
+        stage('Test') {
+            when { expression { return params.runTest } }
+            // 定义测试阶段的执行步骤。
+            steps {
+                // 执行 Go 语言测试命令，使用 -v 参数显示详细信息，测试所有包。
+                sh 'make test'
+            }
+        }
+    }
+}

@@ -1,0 +1,37 @@
+// Copyright 2025 fsyyft-go
+//
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+// 定义 Protocol Buffers 语法版本为 proto3。
+syntax = "proto3";
+
+// 指定 Protocol Buffers 包名。
+package helloworld.v1;
+
+// 导入 Google API 注解，用于定义 HTTP 路由。
+import "google/api/annotations.proto";
+// 导入验证规则，用于请求参数验证。
+import "validate/validate.proto";
+
+// 指定生成的 Go 代码的包路径和包名。
+option go_package = "github.com/fsyyft-go/kratos-layout/api/helloworld/v1;v1";
+
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc SayHello (HelloRequest) returns (HelloReply) {
+    option (google.api.http) = {
+      get: "/helloworld/{name}"
+    };
+  }
+}
+
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1 [(validate.rules).string = { max_len: 5120 }];
+}
+
+// The response message containing the greetings
+message HelloReply {
+  string message = 1;
+}
