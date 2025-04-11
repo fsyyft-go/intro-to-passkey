@@ -1,27 +1,22 @@
-# Copyright 2025 fsyyft-go
-#
-# Licensed under the MIT License. See LICENSE file in the project root for full license information.
-
 # Generated with protoc-gen-openapi
 # https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
 
 openapi: 3.0.3
 info:
-    title: Greeter API
-    description: The greeting service definition.
+    title: ""
     version: 0.0.1
 paths:
     /helloworld/{name}:
         get:
             tags:
-              - Greeter
+                - Greeter
             description: Sends a greeting
             operationId: Greeter_SayHello
             parameters:
-              - name: name
-                in: path
-                required: true
-                schema:
+                - name: name
+                  in: path
+                  required: true
+                  schema:
                     type: string
             responses:
                 "200":
@@ -36,8 +31,125 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
+    /user/change-password:
+        post:
+            tags:
+                - UserService
+            description: ChangePassword 修改密码。
+            operationId: UserService_ChangePassword
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ChangePasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ChangePasswordResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /user/login:
+        post:
+            tags:
+                - UserService
+            description: Login 用户登录。
+            operationId: UserService_Login
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/LoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LoginResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /user/logout:
+        post:
+            tags:
+                - UserService
+            description: Logout 用户退出登录。
+            operationId: UserService_Logout
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/LogoutRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LogoutResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /user/register:
+        post:
+            tags:
+                - UserService
+            description: Register 用户注册。
+            operationId: UserService_Register
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RegisterRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RegisterResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
 components:
     schemas:
+        ChangePasswordRequest:
+            type: object
+            properties:
+                oldPassword:
+                    type: string
+                    description: 旧密码。
+                newPassword:
+                    type: string
+                    description: 新密码。
+            description: ChangePasswordRequest 修改密码请求。
+        ChangePasswordResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                    description: 是否成功。
+            description: ChangePasswordResponse 修改密码响应。
         GoogleProtobufAny:
             type: object
             properties:
@@ -52,6 +164,69 @@ components:
                 message:
                     type: string
             description: The response message containing the greetings
+        LoginRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                    description: 用户名或邮箱。
+                password:
+                    type: string
+                    description: 密码。
+            description: LoginRequest 用户登录请求。
+        LoginResponse:
+            type: object
+            properties:
+                userId:
+                    type: string
+                    description: 用户 ID。
+                username:
+                    type: string
+                    description: 用户名。
+                accessToken:
+                    type: string
+                    description: 访问令牌。
+                tokenType:
+                    type: string
+                    description: 令牌类型，例如 "Bearer"。
+                expiresIn:
+                    type: string
+                    description: 过期时间（秒）。
+            description: LoginResponse 用户登录响应。
+        LogoutRequest:
+            type: object
+            properties: {}
+            description: LogoutRequest 退出登录请求。
+        LogoutResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                    description: 是否成功。
+            description: LogoutResponse 退出登录响应。
+        RegisterRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                    description: 用户名，3-32 个字符。
+                password:
+                    type: string
+                    description: 密码，8-32 个字符。
+                email:
+                    type: string
+                    description: 电子邮件地址。
+            description: RegisterRequest 用户注册请求。
+        RegisterResponse:
+            type: object
+            properties:
+                userId:
+                    type: string
+                    description: 用户 ID。
+                username:
+                    type: string
+                    description: 用户名。
+            description: RegisterResponse 用户注册响应。
         Status:
             type: object
             properties:
@@ -69,4 +244,7 @@ components:
                     description: A list of messages that carry the error details.  There is a common set of message types for APIs to use.
             description: 'The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors).'
 tags:
-  - name: Greeter
+    - name: Greeter
+      description: The greeting service definition.
+    - name: UserService
+      description: UserService 定义用户相关的服务接口。

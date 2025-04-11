@@ -1,0 +1,137 @@
+// Copyright 2025 fsyyft-go
+//
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+syntax = "proto3";
+
+package user.v1;
+
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/fsyyft-go/intro-to-passkey/api/user/v1;v1";
+
+// UserService 定义用户相关的服务接口。
+service UserService {
+  // Register 用户注册。
+  rpc Register(RegisterRequest) returns (RegisterResponse) {
+    option (google.api.http) = {
+      post: "/user/register"
+      body: "*"
+    };
+  }
+
+  // Login 用户登录。
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/user/login"
+      body: "*"
+    };
+  }
+
+  // ChangePassword 修改密码。
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse) {
+    option (google.api.http) = {
+      post: "/user/change-password"
+      body: "*"
+    };
+  }
+
+  // Logout 用户退出登录。
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {
+    option (google.api.http) = {
+      post: "/user/logout"
+      body: "*"
+    };
+  }
+}
+
+// RegisterRequest 用户注册请求。
+message RegisterRequest {
+  // 用户名，3-32 个字符。
+  string username = 1 [(validate.rules).string = {
+    min_len: 3,
+    max_len: 32,
+    pattern: "^[a-zA-Z0-9_-]+$"
+  }];
+  
+  // 密码，8-32 个字符。
+  string password = 2 [(validate.rules).string = {
+    min_len: 8,
+    max_len: 32
+  }];
+  
+  // 电子邮件地址。
+  string email = 3 [(validate.rules).string = {
+    email: true
+  }];
+}
+
+// RegisterResponse 用户注册响应。
+message RegisterResponse {
+  // 用户 ID。
+  int64 user_id = 1;
+  // 用户名。
+  string username = 2;
+}
+
+// LoginRequest 用户登录请求。
+message LoginRequest {
+  // 用户名或邮箱。
+  string username = 1 [(validate.rules).string = {
+    min_len: 3,
+    max_len: 32
+  }];
+  
+  // 密码。
+  string password = 2 [(validate.rules).string = {
+    min_len: 8,
+    max_len: 32
+  }];
+}
+
+// LoginResponse 用户登录响应。
+message LoginResponse {
+  // 用户 ID。
+  int64 user_id = 1;
+  // 用户名。
+  string username = 2;
+  // 访问令牌。
+  string access_token = 3;
+  // 令牌类型，例如 "Bearer"。
+  string token_type = 4;
+  // 过期时间（秒）。
+  int64 expires_in = 5;
+}
+
+// ChangePasswordRequest 修改密码请求。
+message ChangePasswordRequest {
+  // 旧密码。
+  string old_password = 1 [(validate.rules).string = {
+    min_len: 8,
+    max_len: 32
+  }];
+  
+  // 新密码。
+  string new_password = 2 [(validate.rules).string = {
+    min_len: 8,
+    max_len: 32
+  }];
+}
+
+// ChangePasswordResponse 修改密码响应。
+message ChangePasswordResponse {
+  // 是否成功。
+  bool success = 1;
+}
+
+// LogoutRequest 退出登录请求。
+message LogoutRequest {
+  // 当前不需要参数。
+}
+
+// LogoutResponse 退出登录响应。
+message LogoutResponse {
+  // 是否成功。
+  bool success = 1;
+} 
