@@ -2,7 +2,7 @@
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-package server
+package passkey
 
 import (
 	"encoding/json"
@@ -18,7 +18,6 @@ import (
 	kitlog "github.com/fsyyft-go/kit/log"
 
 	appconf "github.com/fsyyft-go/intro-to-passkey/internal/conf"
-	apppasskey "github.com/fsyyft-go/intro-to-passkey/internal/server/passkey"
 	appweb "github.com/fsyyft-go/intro-to-passkey/web"
 )
 
@@ -28,9 +27,9 @@ type RegisterRequest struct {
 	Username string `json:"username"` // 用户名，用于标识用户身份
 }
 
-// passkeyServer 是 Passkey 认证服务器的核心实现结构体。
+// Server 是 Passkey 认证服务器的核心实现结构体。
 // 它负责处理所有与 Passkey 认证相关的 HTTP 请求，并管理认证流程。
-type passkeyServer struct {
+type Server struct {
 	logger   kitlog.Logger                   // 日志记录器，用于记录服务器运行时的日志信息。
 	conf     *appconf.Config                 // 服务器配置信息。
 	webauthn *webauthn.WebAuthn              // WebAuthn 实例，用于处理认证相关操作。
@@ -39,15 +38,15 @@ type passkeyServer struct {
 	mu       sync.RWMutex                    // 互斥锁，用于保护并发访问。
 }
 
-// newPasskeyServer 创建一个新的 Passkey 服务器实例。
+// New 创建一个新的 Passkey 服务器实例。
 // 参数：
 //   - logger：用于记录服务器日志的日志记录器
 //   - conf：服务器的配置信息
 //
 // 返回值：
 //   - http.Handler：实现了 HTTP 请求处理接口的 Passkey 服务器实例
-func newPasskeyServer(logger kitlog.Logger, conf *appconf.Config) http.Handler {
-	h := &passkeyServer{
+func New(logger kitlog.Logger, conf *appconf.Config) http.Handler {
+	h := &Server{
 		logger:   logger,
 		conf:     conf,
 		userDB:   make(map[string]webauthn.User),
@@ -72,7 +71,7 @@ func newPasskeyServer(logger kitlog.Logger, conf *appconf.Config) http.Handler {
 // 参数：
 //   - w：用于写入 HTTP 响应的 ResponseWriter
 //   - r：包含 HTTP 请求信息的 Request 对象
-func (s *passkeyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	switch {
 	case path == "/" || path == "/index.html":
@@ -93,7 +92,7 @@ func (s *passkeyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 // 返回值：
 //   - error：可能发生的错误
-func (s *passkeyServer) serveIndexHTML(w http.ResponseWriter) error {
+func (s *Server) serveIndexHTML(w http.ResponseWriter) error {
 	f, err := appweb.StaticFiles.Open("static/index.html")
 	if err != nil {
 		return err
@@ -114,7 +113,7 @@ func (s *passkeyServer) serveIndexHTML(w http.ResponseWriter) error {
 // 参数：
 //   - w：用于写入 HTTP 响应的 ResponseWriter
 //   - r：包含 HTTP 请求信息的 Request 对象
-func (s *passkeyServer) handleBeginRegistration(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleBeginRegistration(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:44444")
 	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:44444")
@@ -149,13 +148,15 @@ func (s *passkeyServer) handleBeginRegistration(w http.ResponseWriter, r *http.R
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, exists := s.userDB[username]; exists {
-		s.logger.Error("用户已存在", "username", username)
-		http.Error(w, "用户已存在", http.StatusBadRequest)
-		return
+	if user, exists := s.userDB[username]; exists {
+		if nil != user.WebAuthnCredentials() && len(user.WebAuthnCredentials()) > 0 {
+			s.logger.Error("用户已存在", "username", username)
+			http.Error(w, "用户已存在", http.StatusBadRequest)
+			return
+		}
 	}
 
-	user := apppasskey.NewUser([]byte(username), username, username)
+	user := NewUser([]byte(username), username, username)
 
 	options, sessionData, err := s.webauthn.BeginRegistration(user,
 		webauthn.WithCredentialParameters([]protocol.CredentialParameter{

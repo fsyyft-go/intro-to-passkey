@@ -19,6 +19,7 @@ import (
 
 	apphelloworldv1 "github.com/fsyyft-go/intro-to-passkey/api/helloworld/v1"
 	appconf "github.com/fsyyft-go/intro-to-passkey/internal/conf"
+	apppasskey "github.com/fsyyft-go/intro-to-passkey/internal/server/passkey"
 )
 
 var (
@@ -82,7 +83,7 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 	kitkratostransporthttp.Parse(server, webServer.engine)
 
 	// 创建并配置 Passkey 服务器。
-	ps := newPasskeyServer(logger, conf)
+	ps := apppasskey.New(logger, conf)
 	webServer.engine.GET("/", gin.HandlerFunc(func(c *gin.Context) {
 		ps.ServeHTTP(c.Writer, c.Request)
 	}))
