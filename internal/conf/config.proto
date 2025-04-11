@@ -1,0 +1,49 @@
+// Copyright 2025 fsyyft-go
+//
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+// 指定 Protocol Buffers 语法版本为 proto3。
+syntax = "proto3";
+
+// 指定生成的 Go 代码的包路径和包名。
+package internal.conf;
+
+// 指定生成的 Go 代码的包路径和包名。
+option go_package = "github.com/fsyyft-go/kratos-layout/internal/conf;conf";
+
+// 导入 google.protobuf.Duration 类型。
+import "google/protobuf/duration.proto";
+
+// Config 定义应用程序的配置结构，包含所有子系统的配置信息。
+message Config {
+  // Log 配置应用程序的日志系统。
+  Log log = 1;
+  // Server 配置应用程序的服务器设置。
+  Server server = 2;
+}
+
+// Log 定义日志系统的详细配置参数。
+message Log {
+  // type 指定日志系统类型，支持 logrus 等日志框架。
+  string type = 1;
+  // output 指定日志输出的目标路径，可以是文件路径或特殊值（如 stdout）。
+  string output = 2;
+  // level 指定日志记录的级别，可选值包括：debug、info、warn、error。
+  string level = 3;
+}
+
+// Server 定义服务器相关的配置参数。
+message Server {
+  // HTTP 定义 HTTP 服务器的配置参数。
+  message HTTP {
+    // network 指定网络类型，如 tcp、tcp4、tcp6 等。
+    string network = 1;
+    // addr 指定服务器监听的地址和端口，格式为 host:port。
+    string addr = 2;
+    // timeout 定义 HTTP 请求的超时时间。
+    google.protobuf.Duration timeout = 3;
+  }
+  // 定义 HTTP 服务器的配置参数。
+  HTTP http = 1;
+}
+

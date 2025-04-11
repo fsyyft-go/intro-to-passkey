@@ -1,0 +1,77 @@
+# 定义 GitHub Actions 工作流的名称。
+name: CI
+
+# 定义触发工作流执行的事件。
+on:
+  # 当代码被推送到仓库时触发工作流。
+  push:
+
+  # 当创建或更新 Pull Request 时触发工作流。
+  pull_request:
+
+
+jobs:
+  # 定义测试任务。
+  test:
+    # 设置任务显示名称为 Test。
+    name: Test
+    # 指定运行环境为最新版本的 Ubuntu。
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # 定义测试矩阵，指定多个 Go 版本进行测试。
+        go-version: [ '1.22', '1.23', '1.24' ]
+      # 设置当某个版本测试失败时，其他版本继续执行。
+      fail-fast: false
+      # 限制并发执行数为 1，确保测试按顺序执行。
+      max-parallel: 1
+
+    steps:
+    # 使用官方的 checkout action 检出代码。
+    - uses: actions/checkout@v4
+
+    # 使用官方的 setup-go action 配置 Go 环境。
+    - name: Set up Go
+      # 使用 actions/setup-go@v4 动作设置 Go 环境。
+      uses: actions/setup-go@v4
+      with:
+        # 使用矩阵中指定的 Go 版本。
+        go-version: ${{ matrix.go-version }}
+        # 启用 Go 模块缓存以加速构建。
+        cache: true
+
+    # 执行测试命令。
+    - name: Run tests
+      run: make test
+
+  # 定义代码质量检查任务。
+  lint:
+    # 设置任务显示名称为 Lint。
+    name: Lint
+    # 指定运行环境为最新版本的 Ubuntu。
+    runs-on: ubuntu-latest
+
+    steps:
+    # 使用 actions/checkout@v4 动作检出代码仓库。
+    - uses: actions/checkout@v4
+
+    # 配置 Go 语言环境。
+    - name: Set up Go
+      # 使用 actions/setup-go@v4 动作设置 Go 环境。
+      uses: actions/setup-go@v4
+      with:
+        # 指定使用 Go 1.24 版本。
+        go-version: '1.24'
+        # 启用 Go 模块缓存以加速构建。
+        cache: true
+
+    # 运行 golangci-lint 进行代码质量检查。
+    - name: Run golangci-lint
+      # 使用 golangci/golangci-lint-action@v4 动作执行代码检查。
+      uses: golangci/golangci-lint-action@v4
+      with:
+        # 使用最新版本的 golangci-lint。
+        version: latest
+        # 设置输出格式为带颜色的行号格式。
+        args: --out-format=colored-line-number

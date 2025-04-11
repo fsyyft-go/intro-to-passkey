@@ -1,0 +1,20 @@
+// Copyright 2025 fsyyft-go
+//
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+// 定义 Protocol Buffers 语法版本为 proto3。
+syntax = "proto3";
+
+// 指定 Protocol Buffers 包名。
+package helloworld.v1;
+
+// 指定生成的 Go 代码的包路径和包名。
+option go_package = "github.com/fsyyft-go/kratos-layout/api/helloworld/v1;v1";
+
+// 定义错误原因枚举。
+enum ErrorReason {
+  // 未指定错误。
+  GREETER_UNSPECIFIED = 0;
+  // 用户未找到。
+  USER_NOT_FOUND = 1;
+}

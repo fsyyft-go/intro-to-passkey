@@ -1,0 +1,12 @@
+# Copyright 2025 fsyyft-go
+# 
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+# See the OWNERS docs at https://go.k8s.io/owners
+
+approvers:
+  - fsyyft
+reviewers:
+  - fsyyft
+labels:
+  - kratos-layout

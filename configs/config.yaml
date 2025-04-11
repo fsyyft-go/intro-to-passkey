@@ -1,0 +1,19 @@
+# 日志配置。
+log:
+  # 日志类型，使用 logrus 日志库。
+  type: logrus
+  # 日志输出路径。
+  output: logs/app.log
+  # 日志级别，可选值：debug、info、warn、error。
+  level: debug
+
+# 服务器配置。
+server:
+  # HTTP 服务器配置。
+  http:
+    # 网络类型，如 tcp、tcp4、tcp6 等。
+    network: tcp
+    # 服务器监听的地址和端口，格式为 host:port。
+    addr: 127.0.0.1:44444
+    # 请求超时时间。
+    timeout: 10s
