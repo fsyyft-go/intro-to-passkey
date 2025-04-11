@@ -23,7 +23,8 @@ import (
 
 // 定义 cookie 名称常量。
 const (
-	cookienamereg = "registration_session"
+	cookienamereg   = "registration_session"
+	cookienamelogin = "login_session"
 )
 
 // Request 定义了用户注册请求的数据结构。
@@ -301,4 +302,43 @@ func (s *Server) handleBeginLogin(w http.ResponseWriter, r *http.Request) {
 	// 加锁保护并发访问。
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	var user webauthn.User
+
+	// 检查用户是否已存在。
+	if u, exists := s.userDB[username]; !exists {
+		s.logger.Warn("用户不存在", "username", username)
+		http.Error(w, "用户不存在", http.StatusBadRequest)
+		return
+	} else {
+		user = u
+	}
+
+	options, sessionData, err := s.webauthn.BeginLogin(user)
+	if err != nil {
+		s.logger.Error("开始登录失败", "error", err, "username", username)
+		http.Error(w, "开始登录失败", http.StatusInternalServerError)
+		return
+	}
+
+	// 保存会话数据。
+	sessionID := username
+	s.sessions[sessionID] = *sessionData
+
+	// 设置会话 cookie。
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookienamelogin,
+		Value:    sessionID,
+		Path:     "/",
+		MaxAge:   300,
+		HttpOnly: true,
+		Secure:   r.TLS != nil,
+	})
+
+	// 将注册选项编码为 JSON 并发送响应。
+	if err := json.NewEncoder(w).Encode(options); err != nil {
+		s.logger.Error("编码响应失败", "error", err, "username", username)
+		http.Error(w, "编码响应失败", http.StatusInternalServerError)
+		return
+	}
 }
