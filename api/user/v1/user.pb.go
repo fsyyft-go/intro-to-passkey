@@ -497,8 +497,8 @@ const file_api_user_v1_user_proto_rawDesc = "" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x0f\n" +
 	"\rLogoutRequest\"*\n" +
 	"\x0eLogoutResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\x82\x03\n" +
-	"\vUserService\x12Z\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\xfb\x02\n" +
+	"\x04User\x12Z\n" +
 	"\bRegister\x12\x18.user.v1.RegisterRequest\x1a\x19.user.v1.RegisterResponse\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/user/register\x12N\n" +
 	"\x05Login\x12\x15.user.v1.LoginRequest\x1a\x16.user.v1.LoginResponse\"\x16\x82\xd3\xe4\x93\x02\x10:\x01*\"\v/user/login\x12s\n" +
 	"\x0eChangePassword\x12\x1e.user.v1.ChangePasswordRequest\x1a\x1f.user.v1.ChangePasswordResponse\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/user/change-password\x12R\n" +
@@ -528,14 +528,14 @@ var file_api_user_v1_user_proto_goTypes = []any{
 	(*LogoutResponse)(nil),         // 7: user.v1.LogoutResponse
 }
 var file_api_user_v1_user_proto_depIdxs = []int32{
-	0, // 0: user.v1.UserService.Register:input_type -> user.v1.RegisterRequest
-	2, // 1: user.v1.UserService.Login:input_type -> user.v1.LoginRequest
-	4, // 2: user.v1.UserService.ChangePassword:input_type -> user.v1.ChangePasswordRequest
-	6, // 3: user.v1.UserService.Logout:input_type -> user.v1.LogoutRequest
-	1, // 4: user.v1.UserService.Register:output_type -> user.v1.RegisterResponse
-	3, // 5: user.v1.UserService.Login:output_type -> user.v1.LoginResponse
-	5, // 6: user.v1.UserService.ChangePassword:output_type -> user.v1.ChangePasswordResponse
-	7, // 7: user.v1.UserService.Logout:output_type -> user.v1.LogoutResponse
+	0, // 0: user.v1.User.Register:input_type -> user.v1.RegisterRequest
+	2, // 1: user.v1.User.Login:input_type -> user.v1.LoginRequest
+	4, // 2: user.v1.User.ChangePassword:input_type -> user.v1.ChangePasswordRequest
+	6, // 3: user.v1.User.Logout:input_type -> user.v1.LogoutRequest
+	1, // 4: user.v1.User.Register:output_type -> user.v1.RegisterResponse
+	3, // 5: user.v1.User.Login:output_type -> user.v1.LoginResponse
+	5, // 6: user.v1.User.ChangePassword:output_type -> user.v1.ChangePasswordResponse
+	7, // 7: user.v1.User.Logout:output_type -> user.v1.LogoutResponse
 	4, // [4:8] is the sub-list for method output_type
 	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

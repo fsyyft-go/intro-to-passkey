@@ -20,6 +20,7 @@ import (
 	kitruntime "github.com/fsyyft-go/kit/runtime"
 
 	apphelloworldv1 "github.com/fsyyft-go/intro-to-passkey/api/helloworld/v1"
+	appuser "github.com/fsyyft-go/intro-to-passkey/api/user/v1"
 	appconf "github.com/fsyyft-go/intro-to-passkey/internal/conf"
 	apppasskey "github.com/fsyyft-go/intro-to-passkey/internal/server/passkey"
 )
@@ -59,6 +60,7 @@ type (
 //   - error：初始化过程中可能发生的错误
 func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 	greeter apphelloworldv1.GreeterHTTPServer,
+	user appuser.UserHTTPServer,
 ) (WebServer, func(), error) {
 	var err error
 

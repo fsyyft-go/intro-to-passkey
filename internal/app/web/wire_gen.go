@@ -21,20 +21,31 @@ import (
 
 // Injectors from wire.go:
 
-func wireWeb(conf2 *appconf.Config) (appserver.WebServer, func(), error) {
-	logger, cleanup, err := applog.NewLogger(conf2)
+// wireWeb 是 Wire 框架的注入器函数，用于构建完整的 Web 服务实例。
+// 该函数通过 Wire 工具在编译时生成具体的依赖注入代码。
+//
+// 参数：
+//   - conf: 应用程序配置对象
+//
+// 返回：
+//   - appserver.WebServer: 完整配置的 Web 服务实例
+//   - func(): 清理函数，用于释放资源
+//   - error: 初始化过程中的错误信息
+func wireWeb(conf *appconf.Config) (appserver.WebServer, func(), error) {
+	logger, cleanup, err := applog.NewLogger(conf)
 	if err != nil {
 		return nil, nil, err
 	}
-	dataData, cleanup2, err := appdata.NewData(logger, conf2)
+	dataData, cleanup2, err := appdata.NewData(logger, conf)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	greeterRepo := appdata.NewGreeterRepo(logger, conf2, dataData)
-	greeterUsecase := appbiz.NewGreeterUsecase(logger, conf2, greeterRepo)
-	greeterHTTPServer := appservice.NewGreeterService(logger, conf2, greeterUsecase)
-	webServer, cleanup3, err := appserver.NewWebServer(logger, conf2, greeterHTTPServer)
+	greeterRepo := appdata.NewGreeterRepo(logger, conf, dataData)
+	greeterUsecase := appbiz.NewGreeterUsecase(logger, conf, greeterRepo)
+	greeterHTTPServer := appservice.NewGreeterService(logger, conf, greeterUsecase)
+	userHTTPServer := appservice.NewUserService(logger, conf)
+	webServer, cleanup3, err := appserver.NewWebServer(logger, conf, greeterHTTPServer, userHTTPServer)
 	if err != nil {
 		cleanup2()
 		cleanup()

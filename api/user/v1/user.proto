@@ -11,8 +11,8 @@ import "validate/validate.proto";
 
 option go_package = "github.com/fsyyft-go/intro-to-passkey/api/user/v1;v1";
 
-// UserService 定义用户相关的服务接口。
-service UserService {
+// User 定义用户相关的服务接口。
+service User {
   // Register 用户注册。
   rpc Register(RegisterRequest) returns (RegisterResponse) {
     option (google.api.http) = {

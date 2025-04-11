@@ -13,5 +13,6 @@ var (
 	// ProviderSet 是服务层的依赖注入提供者集合。
 	ProviderSet = wire.NewSet(
 		NewGreeterService,
+		NewUserService,
 	)
 )

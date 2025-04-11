@@ -34,9 +34,9 @@ paths:
     /user/change-password:
         post:
             tags:
-                - UserService
+                - User
             description: ChangePassword 修改密码。
-            operationId: UserService_ChangePassword
+            operationId: User_ChangePassword
             requestBody:
                 content:
                     application/json:
@@ -59,9 +59,9 @@ paths:
     /user/login:
         post:
             tags:
-                - UserService
+                - User
             description: Login 用户登录。
-            operationId: UserService_Login
+            operationId: User_Login
             requestBody:
                 content:
                     application/json:
@@ -84,9 +84,9 @@ paths:
     /user/logout:
         post:
             tags:
-                - UserService
+                - User
             description: Logout 用户退出登录。
-            operationId: UserService_Logout
+            operationId: User_Logout
             requestBody:
                 content:
                     application/json:
@@ -109,9 +109,9 @@ paths:
     /user/register:
         post:
             tags:
-                - UserService
+                - User
             description: Register 用户注册。
-            operationId: UserService_Register
+            operationId: User_Register
             requestBody:
                 content:
                     application/json:
@@ -246,5 +246,5 @@ components:
 tags:
     - name: Greeter
       description: The greeting service definition.
-    - name: UserService
-      description: UserService 定义用户相关的服务接口。
+    - name: User
+      description: User 定义用户相关的服务接口。
