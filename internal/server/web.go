@@ -81,6 +81,12 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 	// 将 Kratos HTTP 服务解析到 Gin 引擎中。
 	kitkratostransporthttp.Parse(server, webServer.engine)
 
+	// 创建并配置 Passkey 服务器。
+	ps := newPasskeyServer(logger, conf)
+	webServer.engine.GET("/", gin.HandlerFunc(func(c *gin.Context) {
+		ps.ServeHTTP(c.Writer, c.Request)
+	}))
+
 	var cleanup = func() {}
 
 	return webServer, cleanup, err
