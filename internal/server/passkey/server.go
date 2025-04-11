@@ -2,6 +2,8 @@
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+// Package passkey 的 server.go 文件实现了 WebAuthn 认证服务器。
+// 提供了用户注册、登录认证等核心功能的 HTTP 接口实现。
 package passkey
 
 import (
@@ -21,38 +23,42 @@ import (
 	appweb "github.com/fsyyft-go/intro-to-passkey/web"
 )
 
-// 定义 cookie 名称常量。
+// Cookie 名称常量定义。
 const (
-	cookienamereg   = "registration_session"
+	// cookienamereg 用于存储注册会话的 Cookie 名称。
+	cookienamereg = "registration_session"
+	// cookienamelogin 用于存储登录会话的 Cookie 名称。
 	cookienamelogin = "login_session"
 )
 
-// Request 定义了用户注册请求的数据结构。
-// 该结构体用于接收客户端发送的注册请求数据。
+// Request 定义了用户注册和登录请求的数据结构。
 type Request struct {
-	Username string `json:"username"` // 用户名，用于标识用户身份。
+	// Username 是用户的登录名。
+	// 在注册时用作唯一标识，在登录时用于查找用户。
+	Username string `json:"username"`
 }
 
-// Server 是 Passkey 认证服务器的核心实现结构体。
-// 它负责处理所有与 Passkey 认证相关的 HTTP 请求，并管理认证流程。
+// Server 是 Passkey 认证服务器的核心实现。
+// 负责处理用户注册、认证等所有 WebAuthn 相关的 HTTP 请求。
 type Server struct {
-	logger   kitlog.Logger                   // 日志记录器，用于记录服务器运行时的日志信息。
-	conf     *appconf.Config                 // 服务器配置信息。
-	webauthn *webauthn.WebAuthn              // WebAuthn 实例，用于处理认证相关操作。
-	userDB   map[string]webauthn.User        // 用户数据库，存储所有注册用户信息。
-	sessions map[string]webauthn.SessionData // 会话存储，用于管理注册会话。
-	mu       sync.RWMutex                    // 互斥锁，用于保护并发访问。
+	logger   kitlog.Logger                   // 结构化日志记录器。
+	conf     *appconf.Config                 // 服务器配置对象。
+	webauthn *webauthn.WebAuthn              // WebAuthn 协议处理器。
+	userDB   map[string]webauthn.User        // 内存中的用户数据存储。
+	sessions map[string]webauthn.SessionData // 认证会话数据存储。
+	mu       sync.RWMutex                    // 用于保护并发访问的互斥锁。
 }
 
-// New 创建一个新的 Passkey 服务器实例。
-// 参数：
-//   - logger：用于记录服务器日志的日志记录器
-//   - conf：服务器的配置信息
+// New 创建并初始化一个新的 Passkey 服务器实例。
 //
-// 返回值：
-//   - http.Handler：实现了 HTTP 请求处理接口的 Passkey 服务器实例
+// 参数：
+//   - logger：结构化日志记录器，用于服务器运行时的日志记录
+//   - conf：服务器配置对象，包含所有必要的配置参数
+//
+// 返回：
+//   - http.Handler：配置完成的 HTTP 请求处理器
 func New(logger kitlog.Logger, conf *appconf.Config) http.Handler {
-	// 创建新的服务器实例。
+	// 创建服务器实例并初始化基本字段。
 	h := &Server{
 		logger:   logger,
 		conf:     conf,
@@ -62,8 +68,8 @@ func New(logger kitlog.Logger, conf *appconf.Config) http.Handler {
 
 	// 初始化 WebAuthn 配置。
 	h.webauthn, _ = webauthn.New(&webauthn.Config{
-		RPID:          "localhost",    // 依赖方 ID。
-		RPDisplayName: "Passkey Demo", // 依赖方显示名称。
+		RPID:          "localhost",    // 信赖方标识符。
+		RPDisplayName: "Passkey Demo", // 信赖方显示名称。
 		RPOrigins: []string{ // 允许的源地址列表。
 			"http://localhost:44444",
 			"http://127.0.0.1:44444",
@@ -74,15 +80,15 @@ func New(logger kitlog.Logger, conf *appconf.Config) http.Handler {
 	return h
 }
 
-// ServeHTTP 实现了 http.Handler 接口，处理所有进入的 HTTP 请求。
-// 当请求访问根路径（"/"）或 "index.html" 时，将返回主页面。
+// ServeHTTP 实现了 http.Handler 接口，处理所有 WebAuthn 相关的 HTTP 请求。
+// 根据请求路径将请求分发到相应的处理函数。
+//
 // 参数：
-//   - w：用于写入 HTTP 响应的 ResponseWriter
-//   - r：包含 HTTP 请求信息的 Request 对象
+//   - w：HTTP 响应写入器
+//   - r：HTTP 请求对象
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// 获取请求路径。
+	// 获取请求路径并进行路由分发。
 	path := r.URL.Path
-	// 根据路径选择对应的处理函数。
 	switch {
 	case path == "/" || path == "/index.html":
 		// 处理主页请求。
@@ -91,31 +97,32 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "服务主页失败", http.StatusInternalServerError)
 		}
 	case strings.HasPrefix(path, "/api/register/begin"):
-		// 处理注册开始请求。
+		// 处理注册流程的开始请求。
 		s.handleBeginRegistration(w, r)
 	case strings.HasPrefix(path, "/api/register/finish"):
-		// 处理注册完成请求。
+		// 处理注册流程的完成请求。
 		s.handleFinishRegistration(w, r)
 	case strings.HasPrefix(path, "/api/login/begin"):
-		// 处理登录开始请求。
+		// 处理登录流程的开始请求。
 		s.handleBeginLogin(w, r)
 	case strings.HasPrefix(path, "/api/login/finish"):
-		// 处理登录完成请求。
+		// 处理登录流程的完成请求。
 		s.handleFinishLogin(w, r)
 	default:
-		// 处理未知路径请求。
+		// 处理未知路径的请求。
 		http.NotFound(w, r)
 	}
 }
 
-// serveIndexHTML 处理主页请求，返回 index.html 文件内容。
-// 参数：
-//   - w：用于写入 HTTP 响应的 ResponseWriter
+// serveIndexHTML 处理主页请求，返回静态 HTML 文件。
 //
-// 返回值：
-//   - error：可能发生的错误
+// 参数：
+//   - w：HTTP 响应写入器
+//
+// 返回：
+//   - error：文件处理过程中可能发生的错误
 func (s *Server) serveIndexHTML(w http.ResponseWriter) error {
-	// 打开静态文件。
+	// 打开静态 HTML 文件。
 	f, err := appweb.StaticFiles.Open("static/index.html")
 	if err != nil {
 		return err
@@ -127,34 +134,35 @@ func (s *Server) serveIndexHTML(w http.ResponseWriter) error {
 		}
 	}()
 
-	// 设置响应头的内容类型。
+	// 设置正确的内容类型。
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// 将文件内容复制到响应写入器。
+	// 将文件内容写入响应。
 	_, err = io.Copy(w, f)
 	return err
 }
 
-// handleBeginRegistration 处理用户注册请求。
-// 该函数负责验证用户信息、创建新用户、生成注册选项并设置会话。
+// handleBeginRegistration 处理用户注册流程的开始阶段。
+// 验证用户信息，创建注册会话，并返回客户端所需的注册选项。
+//
 // 参数：
-//   - w：用于写入 HTTP 响应的 ResponseWriter
-//   - r：包含 HTTP 请求信息的 Request 对象
+//   - w：HTTP 响应写入器
+//   - r：HTTP 请求对象
 func (s *Server) handleBeginRegistration(w http.ResponseWriter, r *http.Request) {
-	// 解析请求体。
+	// 解析请求体中的用户信息。
 	var req Request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.logger.Warn("解析请求数据失败", "error", err)
 		http.Error(w, "无法解析请求数据", http.StatusBadRequest)
 		return
 	}
-	// 确保请求体被关闭。
+	// 确保请求体被正确关闭。
 	defer func() {
 		if err := r.Body.Close(); err != nil {
 			s.logger.Error("关闭请求体失败", "error", err)
 		}
 	}()
 
-	// 验证用户名。
+	// 验证用户名的有效性。
 	username := req.Username
 	if username == "" {
 		s.logger.Warn("用户名为空")
@@ -162,11 +170,11 @@ func (s *Server) handleBeginRegistration(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// 加锁保护并发访问。
+	// 使用互斥锁保护并发访问。
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// 检查用户是否已存在。
+	// 检查用户是否已存在且已注册凭证。
 	if user, exists := s.userDB[username]; exists {
 		if nil != user.WebAuthnCredentials() && len(user.WebAuthnCredentials()) > 0 {
 			s.logger.Warn("用户已存在", "username", username)
@@ -175,27 +183,29 @@ func (s *Server) handleBeginRegistration(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	// 创建新用户。
+	// 创建新用户实例。
 	user := NewUser([]byte(username), username, username)
 
-	// 开始注册流程。
+	// 开始 WebAuthn 注册流程。
 	options, sessionData, err := s.webauthn.BeginRegistration(user,
+		// 配置支持的凭证参数。
 		webauthn.WithCredentialParameters([]protocol.CredentialParameter{
 			{
 				Type:      protocol.PublicKeyCredentialType,
-				Algorithm: webauthncose.AlgES256,
+				Algorithm: webauthncose.AlgES256, // 支持 ECDSA P-256。
 			},
 			{
 				Type:      protocol.PublicKeyCredentialType,
-				Algorithm: webauthncose.AlgEdDSA,
+				Algorithm: webauthncose.AlgEdDSA, // 支持 EdDSA。
 			},
 			{
 				Type:      protocol.PublicKeyCredentialType,
-				Algorithm: webauthncose.AlgRS256,
+				Algorithm: webauthncose.AlgRS256, // 支持 RSA PKCS#1。
 			},
 		}),
+		// 配置支持的证明格式。
 		webauthn.WithAttestationFormats([]protocol.AttestationFormat{
-			protocol.AttestationFormatNone,
+			protocol.AttestationFormatNone, // 支持无证明格式。
 		}),
 	)
 	if err != nil {
