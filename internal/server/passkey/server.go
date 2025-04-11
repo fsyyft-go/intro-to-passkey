@@ -99,6 +99,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(path, "/api/login/begin"):
 		// 处理登录开始请求。
 		s.handleBeginLogin(w, r)
+	case strings.HasPrefix(path, "/api/login/finish"):
+		// 处理登录完成请求。
+		s.handleFinishLogin(w, r)
 	default:
 		// 处理未知路径请求。
 		http.NotFound(w, r)
@@ -274,6 +277,18 @@ func (s *Server) handleFinishRegistration(w http.ResponseWriter, r *http.Request
 	user.(*User).AddCredential(*credential)
 
 	s.logger.Info("注册完成成功", "username", user.WebAuthnName())
+
+	// 删除会话数据。
+	delete(s.sessions, sessionID)
+
+	// 设置会话 cookie。
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookienamereg,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
 }
 
 func (s *Server) handleBeginLogin(w http.ResponseWriter, r *http.Request) {
@@ -341,4 +356,55 @@ func (s *Server) handleBeginLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "编码响应失败", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (s *Server) handleFinishLogin(w http.ResponseWriter, r *http.Request) {
+	// 获取会话 cookie。
+	cookie, err := r.Cookie(cookienamelogin)
+	if err != nil {
+		s.logger.Warn("获取会话 ID 失败", "error", err)
+		http.Error(w, "获取会话 ID 失败", http.StatusBadRequest)
+		return
+	}
+
+	// 获取会话 ID。
+	sessionID := cookie.Value
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// 获取会话数据。
+	sessionData, ok := s.sessions[sessionID]
+	if !ok {
+		s.logger.Warn("会话 ID 不存在", "sessionID", sessionID)
+		http.Error(w, "会话 ID 不存在", http.StatusBadRequest)
+		return
+	}
+
+	// 获取用户信息。
+	user, ok := s.userDB[string(sessionData.UserID)]
+	if !ok {
+		s.logger.Warn("用户不存在", "userID", sessionData.UserID)
+		http.Error(w, "用户不存在", http.StatusBadRequest)
+		return
+	}
+
+	// 完成登录流程。
+	_, err = s.webauthn.FinishLogin(user, sessionData, r)
+	if err != nil {
+		s.logger.Warn("登录完成失败", "error", err)
+		http.Error(w, "登录完成失败", http.StatusInternalServerError)
+		return
+	}
+
+	// 删除会话数据。
+	delete(s.sessions, sessionID)
+
+	// 设置会话 cookie。
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookienamelogin,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
 }
