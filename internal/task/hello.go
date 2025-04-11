@@ -12,7 +12,6 @@ import (
 	kit_config "github.com/fsyyft-go/kit/config"
 	kit_log "github.com/fsyyft-go/kit/log"
 
-	// 模板：下面这条导入，应用时需要修改。
 	app_conf "github.com/fsyyft-go/intro-to-passkey/internal/conf"
 )
 

@@ -12,7 +12,6 @@ package web
 import (
 	"github.com/google/wire"
 
-	// 模板：下面这条导入，应用时需要修改。
 	appbiz "github.com/fsyyft-go/intro-to-passkey/internal/biz"
 	appconf "github.com/fsyyft-go/intro-to-passkey/internal/conf"
 	appdata "github.com/fsyyft-go/intro-to-passkey/internal/data"

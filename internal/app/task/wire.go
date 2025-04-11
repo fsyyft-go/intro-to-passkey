@@ -10,7 +10,6 @@ package task
 import (
 	"github.com/google/wire"
 
-	// 模板：下面这条导入，应用时需要修改。
 	appconf "github.com/fsyyft-go/intro-to-passkey/internal/conf"
 	apptask "github.com/fsyyft-go/intro-to-passkey/internal/task"
 )

@@ -9,7 +9,7 @@ syntax = "proto3";
 package helloworld.v1;
 
 // 指定生成的 Go 代码的包路径和包名。
-option go_package = "github.com/fsyyft-go/kratos-layout/api/helloworld/v1;v1";
+option go_package = "github.com/fsyyft-go/intro-to-passkey/api/helloworld/v1;v1";
 
 // 定义错误原因枚举。
 enum ErrorReason {

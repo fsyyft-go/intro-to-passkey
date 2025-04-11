@@ -8,7 +8,7 @@ INTERNAL_CONF_PROTO_FILES=$(shell find internal/conf -name *.proto)
 LOG_DIR=logs
 
 # Docker 镜像名称，格式为：用户名/项目名。
-IMAGE_NAME=fsyyft/kratos-layout
+IMAGE_NAME=fsyyft/intro-to-passkey
 
 # 获取当前日期，格式为年月日（YYMMDD）。
 BUILD_DATE=$(shell date +%y%m%d)
