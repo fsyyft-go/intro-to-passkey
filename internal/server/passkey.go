@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -15,6 +16,7 @@ import (
 	kitlog "github.com/fsyyft-go/kit/log"
 
 	appconf "github.com/fsyyft-go/intro-to-passkey/internal/conf"
+	apppasskey "github.com/fsyyft-go/intro-to-passkey/internal/server/passkey"
 	appweb "github.com/fsyyft-go/intro-to-passkey/web"
 )
 
@@ -22,15 +24,6 @@ import (
 // 该结构体用于接收客户端发送的注册请求数据。
 type RegisterRequest struct {
 	Username string `json:"username"` // 用户名，用于标识用户身份
-}
-
-// User 实现了 webauthn.User 接口，用于存储用户信息和凭证。
-// 该结构体包含了 WebAuthn 认证所需的所有用户相关数据。
-type User struct {
-	ID          []byte                // 用户唯一标识符
-	Name        string                // 用户名
-	DisplayName string                // 用户显示名称
-	Credentials []webauthn.Credential // 用户凭证列表
 }
 
 // Session 用于存储注册会话数据。
@@ -42,42 +35,12 @@ type Session struct {
 // passkeyServer 是 Passkey 认证服务器的核心实现结构体。
 // 它负责处理所有与 Passkey 认证相关的 HTTP 请求，并管理认证流程。
 type passkeyServer struct {
-	logger   kitlog.Logger       // 日志记录器，用于记录服务器运行时的日志信息
-	conf     *appconf.Config     // 服务器配置信息
-	webauthn *webauthn.WebAuthn  // WebAuthn 实例，用于处理认证相关操作
-	userDB   map[string]*User    // 用户数据库，存储所有注册用户信息
-	sessions map[string]*Session // 会话存储，用于管理注册会话
-	mu       sync.RWMutex        // 互斥锁，用于保护并发访问
-}
-
-// WebAuthnID 实现 webauthn.User 接口，返回用户的唯一标识符。
-// 返回值：用户 ID 的字节数组表示。
-func (u *User) WebAuthnID() []byte {
-	return u.ID
-}
-
-// WebAuthnName 实现 webauthn.User 接口，返回用户名。
-// 返回值：用户名字符串。
-func (u *User) WebAuthnName() string {
-	return u.Name
-}
-
-// WebAuthnDisplayName 实现 webauthn.User 接口，返回用户显示名称。
-// 返回值：用户显示名称字符串。
-func (u *User) WebAuthnDisplayName() string {
-	return u.DisplayName
-}
-
-// WebAuthnCredentials 实现 webauthn.User 接口，返回用户凭证列表。
-// 返回值：用户凭证数组。
-func (u *User) WebAuthnCredentials() []webauthn.Credential {
-	return u.Credentials
-}
-
-// WebAuthnIcon 实现 webauthn.User 接口，返回用户图标 URL。
-// 返回值：空字符串，表示不使用用户图标。
-func (u *User) WebAuthnIcon() string {
-	return ""
+	logger   kitlog.Logger            // 日志记录器，用于记录服务器运行时的日志信息
+	conf     *appconf.Config          // 服务器配置信息
+	webauthn *webauthn.WebAuthn       // WebAuthn 实例，用于处理认证相关操作
+	userDB   map[string]webauthn.User // 用户数据库，存储所有注册用户信息
+	sessions map[string]*Session      // 会话存储，用于管理注册会话
+	mu       sync.RWMutex             // 互斥锁，用于保护并发访问
 }
 
 // newPasskeyServer 创建一个新的 Passkey 服务器实例。
@@ -91,7 +54,7 @@ func newPasskeyServer(logger kitlog.Logger, conf *appconf.Config) http.Handler {
 	h := &passkeyServer{
 		logger:   logger,
 		conf:     conf,
-		userDB:   make(map[string]*User),
+		userDB:   make(map[string]webauthn.User),
 		sessions: make(map[string]*Session),
 	}
 
@@ -110,24 +73,26 @@ func newPasskeyServer(logger kitlog.Logger, conf *appconf.Config) http.Handler {
 //   - w：用于写入 HTTP 响应的 ResponseWriter
 //   - r：包含 HTTP 请求信息的 Request 对象
 func (s *passkeyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.URL.Path {
-	case "/", "/index.html":
+	path := r.URL.Path
+	switch {
+	case path == "/" || path == "/index.html":
 		if err := s.serveIndexHTML(w); err != nil {
-			s.logger.Error("failed to serve index.html", "error", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			s.logger.Error("服务主页失败", "error", err)
+			http.Error(w, "服务主页失败", http.StatusInternalServerError)
 		}
-	case "/api/register/begin":
+	case strings.HasPrefix(path, "/api/register/begin"):
 		s.handleBeginRegistration(w, r)
+	default:
+		http.NotFound(w, r)
 	}
 }
 
-// serveIndexHTML 处理对 index.html 的请求。
-// 它从嵌入的文件系统中读取 index.html 文件并将其发送给客户端。
+// serveIndexHTML 处理主页请求，返回 index.html 文件内容。
 // 参数：
 //   - w：用于写入 HTTP 响应的 ResponseWriter
 //
 // 返回值：
-//   - error：如果在处理过程中发生错误，返回相应的错误信息
+//   - error：可能发生的错误
 func (s *passkeyServer) serveIndexHTML(w http.ResponseWriter) error {
 	f, err := appweb.StaticFiles.Open("static/index.html")
 	if err != nil {
@@ -135,17 +100,16 @@ func (s *passkeyServer) serveIndexHTML(w http.ResponseWriter) error {
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			s.logger.Error("failed to close index.html", "error", err)
+			s.logger.Error("关闭文件失败", "error", err)
 		}
 	}()
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
 	_, err = io.Copy(w, f)
 	return err
 }
 
-// handleBeginRegistration 处理用户注册的初始请求。
+// handleBeginRegistration 处理用户注册请求。
 // 该函数负责验证用户信息、创建新用户、生成注册选项并设置会话。
 // 参数：
 //   - w：用于写入 HTTP 响应的 ResponseWriter
@@ -169,7 +133,11 @@ func (s *passkeyServer) handleBeginRegistration(w http.ResponseWriter, r *http.R
 		http.Error(w, "无法解析请求数据", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			s.logger.Error("关闭请求体失败", "error", err)
+		}
+	}()
 
 	username := req.Username
 	if username == "" {
@@ -187,12 +155,7 @@ func (s *passkeyServer) handleBeginRegistration(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	user := &User{
-		ID:          []byte(username),
-		Name:        username,
-		DisplayName: username,
-		Credentials: make([]webauthn.Credential, 0),
-	}
+	user := apppasskey.NewUser([]byte(username), username, username)
 
 	options, sessionData, err := s.webauthn.BeginRegistration(user)
 	if err != nil {
